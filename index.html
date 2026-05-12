@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마크다운 에디터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222;
+    --border: #2e2e2e;
+    --text: #e8e6e0;
+    --text-muted: #888;
+    --accent: #7c6cfa;
+    --accent2: #a88bfa;
+    --green: #4ade80;
+    --editor-bg: #141414;
+    --preview-bg: #111;
+    --header-h: 52px;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --font-sans: 'Pretendard', 'Noto Sans KR', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600&display=swap');
+
+  header {
+    height: var(--header-h);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .header-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,108,250,0.08); }
+
+  .btn-accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-accent:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pane-header {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .pane-header .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .pane-header .dot.green { background: var(--green); }
+
+  .divider {
+    width: 1px;
+    background: var(--border);
+    flex-shrink: 0;
+    position: relative;
+    cursor: col-resize;
+    transition: background 0.15s;
+  }
+  .divider:hover { background: var(--accent); }
+
+  #editor {
+    flex: 1;
+    background: var(--editor-bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.8;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 20px 24px;
+    overflow-y: auto;
+    tab-size: 2;
+    caret-color: var(--accent2);
+  }
+
+  #editor::placeholder { color: #3a3a3a; }
+  #editor::selection { background: rgba(124,108,250,0.25); }
+
+  #preview {
+    flex: 1;
+    background: var(--preview-bg);
+    padding: 24px 28px;
+    overflow-y: auto;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+
+  #preview h1, #preview h2, #preview h3, #preview h4, #preview h5, #preview h6 {
+    color: #f0ede8;
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 1.4em 0 0.5em;
+  }
+
+  #preview h1 { font-size: 2em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  #preview h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.2em; }
+  #preview h3 { font-size: 1.2em; }
+  #preview h4 { font-size: 1em; }
+
+  #preview p { margin: 0.75em 0; }
+
+  #preview a { color: var(--accent2); text-decoration: underline; text-underline-offset: 3px; }
+
+  #preview strong { color: #f0ede8; font-weight: 600; }
+  #preview em { color: #ccc9f5; font-style: italic; }
+
+  #preview code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: #1f1f2e;
+    border: 1px solid #2d2b4a;
+    color: #a88bfa;
+    padding: 0.15em 0.4em;
+    border-radius: 5px;
+  }
+
+  #preview pre {
+    background: #161622;
+    border: 1px solid #2a2840;
+    border-radius: 10px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 1em 0;
+    position: relative;
+  }
+
+  #preview pre code {
+    background: none;
+    border: none;
+    color: #c7c3ff;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  #preview blockquote {
+    border-left: 3px solid var(--accent);
+    margin: 1em 0;
+    padding: 4px 16px;
+    color: #999;
+    background: rgba(124,108,250,0.06);
+    border-radius: 0 6px 6px 0;
+  }
+
+  #preview ul, #preview ol { padding-left: 1.5em; margin: 0.5em 0; }
+  #preview li { margin: 0.3em 0; }
+  #preview li input[type=checkbox] { margin-right: 6px; accent-color: var(--accent); }
+
+  #preview table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    font-size: 14px;
+  }
+
+  #preview th {
+    background: #1c1c2a;
+    color: var(--accent2);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid var(--border);
+  }
+
+  #preview td {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+  }
+
+  #preview tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  #preview img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  #preview hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2em 0;
+  }
+
+  #preview del { color: var(--text-muted); }
+
+  #syntax-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    box-shadow: 0 4px 20px rgba(124,108,250,0.45);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
+  }
+
+  #syntax-btn:hover {
+    background: var(--accent2);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(168,139,250,0.5);
+  }
+
+  #syntax-btn svg { width: 16px; height: 16px; }
+
+  /* Panel overlay */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    backdrop-filter: blur(2px);
+  }
+
+  .overlay.active { display: block; }
+
+  #syntax-panel {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 400px;
+    max-height: 80vh;
+    background: #181820;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-right: none;
+    border-radius: 16px 0 0 0;
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  #syntax-panel.active {
+    transform: translateY(0);
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title-badge {
+    font-size: 10px;
+    background: rgba(124,108,250,0.15);
+    color: var(--accent2);
+    border: 1px solid rgba(124,108,250,0.3);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .panel-close {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+
+  .panel-close:hover { border-color: #ff6b6b; color: #ff6b6b; background: rgba(255,107,107,0.08); }
+
+  .panel-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .panel-tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .tab.active { background: rgba(124,108,250,0.15); border-color: rgba(124,108,250,0.3); color: var(--accent2); }
+
+  .panel-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px 12px 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .syntax-section { display: none; }
+  .syntax-section.active { display: block; }
+
+  .syntax-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 6px 0;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .syntax-item:hover {
+    border-color: var(--accent);
+    background: rgba(124,108,250,0.07);
+  }
+
+  .syntax-item:hover .insert-hint { opacity: 1; }
+
+  .syntax-code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent2);
+    background: rgba(124,108,250,0.1);
+    padding: 3px 9px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .syntax-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .syntax-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .syntax-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .insert-hint {
+    font-size: 11px;
+    color: var(--accent2);
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-weight: 500;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+
+  .editor-toolbar {
+    height: 36px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 2px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .editor-toolbar::-webkit-scrollbar { display: none; }
+
+  .tool-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .tool-btn:hover { background: rgba(124,108,250,0.15); color: var(--accent2); }
+
+  .tool-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .tool-label {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 0 6px;
+    background: rgba(124,108,250,0.12);
+    color: var(--accent2);
+    border-radius: 4px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .status-bar {
+    height: 28px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .status-bar span { display: flex; align-items: center; gap: 4px; }
+
+  .empty-state {
+    color: #333;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 80px;
+    line-height: 2;
+    font-family: var(--font-mono);
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    right: 24px;
+    background: #1a1a2e;
+    border: 1px solid var(--accent);
+    color: var(--accent2);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    z-index: 400;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="3" width="16" height="14" rx="3" stroke="#7c6cfa" stroke-width="1.5"/>
+      <path d="M5 7h5M5 10h8M5 13h6" stroke="#7c6cfa" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    마크다운 에디터
+    <span class="logo-badge">LIVE</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="copyMarkdown()" title="마크다운 복사">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      복사
+    </button>
+    <button class="btn" onclick="clearEditor()">지우기</button>
+    <button class="btn btn-accent" onclick="exportHTML()">HTML 내보내기</button>
+  </div>
+</header>
+
+<main>
+  <div class="pane" id="editor-pane" style="max-width: 50%;">
+    <div class="pane-header">
+      <div class="dot"></div>
+      편집기
+    </div>
+    <div class="editor-toolbar">
+      <span class="tool-label">헤딩</span>
+      <button class="tool-btn" title="H1" onclick="insertSyntax('# 제목 1\n', 0)">H1</button>
+      <button class="tool-btn" title="H2" onclick="insertSyntax('## 제목 2\n', 0)">H2</button>
+      <button class="tool-btn" title="H3" onclick="insertSyntax('### 제목 3\n', 0)">H3</button>
+      <div class="tool-sep"></div>
+      <span class="tool-label">서식</span>
+      <button class="tool-btn" title="굵게 (Ctrl+B)" onclick="wrapSelection('**', '**')" style="font-style:normal;font-weight:700;">B</button>
+      <button class="tool-btn" title="기울임 (Ctrl+I)" onclick="wrapSelection('*', '*')" style="font-style:italic;">I</button>
+      <button class="tool-btn" title="취소선" onclick="wrapSelection('~~', '~~')" style="text-decoration:line-through;">S</button>
+      <button class="tool-btn" title="인라인 코드" onclick="wrapSelection('`', '`')" style="font-size:11px;">&lt;/&gt;</button>
+      <div class="tool-sep"></div>
+      <span class="tool-label">블록</span>
+      <button class="tool-btn" title="코드 블록" onclick="insertSyntax('```\n코드\n```\n', 4)" style="font-size:10px;">```</button>
+      <button class="tool-btn" title="인용문" onclick="insertSyntax('> ', 0)">❝</button>
+      <button class="tool-btn" title="구분선" onclick="insertSyntax('\n---\n', 0)">—</button>
+      <div class="tool-sep"></div>
+      <span class="tool-label">목록</span>
+      <button class="tool-btn" title="순서 없는 목록" onclick="insertSyntax('- 항목\n', 0)">•</button>
+      <button class="tool-btn" title="순서 있는 목록" onclick="insertSyntax('1. 항목\n', 0)">1.</button>
+      <button class="tool-btn" title="체크리스트" onclick="insertSyntax('- [ ] 항목\n', 0)">☑</button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" title="링크" onclick="insertSyntax('[텍스트](URL)', 1)" style="font-size:11px;">🔗</button>
+      <button class="tool-btn" title="이미지" onclick="insertSyntax('![대체텍스트](URL)', 2)" style="font-size:11px;">🖼</button>
+      <button class="tool-btn" title="표" onclick="insertTable()" style="font-size:10px;font-weight:600;">표</button>
+    </div>
+    <textarea id="editor" spellcheck="false" placeholder="# 마크다운을 입력하세요...
+
+여기에 마크다운을 작성하면 오른쪽 화면에 실시간으로 미리보기가 표시됩니다.
+
+**굵게**, *기울임*, `코드` 등을 사용해보세요"></textarea>
+  </div>
+
+  <div class="divider" id="divider"></div>
+
+  <div class="pane" id="preview-pane">
+    <div class="pane-header">
+      <div class="dot green"></div>
+      미리보기
+    </div>
+    <div id="preview">
+      <div class="empty-state">왼쪽에서 마크다운을 입력하세요</div>
+    </div>
+  </div>
+</main>
+
+<div class="status-bar">
+  <span>글자 <strong id="char-count" style="color:var(--text);">0</strong></span>
+  <span>단어 <strong id="word-count" style="color:var(--text);">0</strong></span>
+  <span>줄 <strong id="line-count" style="color:var(--text);">0</strong></span>
+</div>
+
+<button id="syntax-btn" onclick="togglePanel()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <path d="M4 6h16M4 12h16M4 18h10"/>
+  </svg>
+  문법 보기
+</button>
+
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+
+<div id="syntax-panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      마크다운 문법
+      <span class="panel-title-badge">참고</span>
+    </div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-tabs" id="panel-tabs"></div>
+  <div class="panel-body" id="panel-body"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+
+marked.setOptions({ breaks: true, gfm: true });
+
+let debounce;
+editor.addEventListener('input', () => {
+  clearTimeout(debounce);
+  debounce = setTimeout(render, 60);
+  updateStatus();
+});
+
+function render() {
+  const val = editor.value.trim();
+  if (!val) {
+    preview.innerHTML = '<div class="empty-state">왼쪽에서 마크다운을 입력하세요</div>';
+    return;
+  }
+  preview.innerHTML = marked.parse(val);
+  preview.querySelectorAll('input[type=checkbox]').forEach(cb => cb.disabled = false);
+}
+
+function updateStatus() {
+  const v = editor.value;
+  document.getElementById('char-count').textContent = v.length;
+  document.getElementById('word-count').textContent = v.trim() ? v.trim().split(/\s+/).length : 0;
+  document.getElementById('line-count').textContent = v ? v.split('\n').length : 0;
+}
+
+function insertSyntax(text, cursorOffset) {
+  const start = editor.selectionStart;
+  const before = editor.value.slice(0, start);
+  const after = editor.value.slice(editor.selectionEnd);
+  editor.value = before + text + after;
+  const pos = start + text.length - cursorOffset;
+  editor.setSelectionRange(pos, pos);
+  editor.focus();
+  render(); updateStatus();
+}
+
+function wrapSelection(before, after) {
+  const s = editor.selectionStart, e = editor.selectionEnd;
+  const sel = editor.value.slice(s, e) || '텍스트';
+  const newText = before + sel + after;
+  editor.value = editor.value.slice(0, s) + newText + editor.value.slice(e);
+  editor.setSelectionRange(s + before.length, s + before.length + sel.length);
+  editor.focus();
+  render(); updateStatus();
+}
+
+function insertTable() {
+  const t = '\n| 제목1 | 제목2 | 제목3 |\n|-------|-------|-------|\n| 내용1 | 내용2 | 내용3 |\n| 내용4 | 내용5 | 내용6 |\n';
+  insertSyntax(t, 0);
+}
+
+document.addEventListener('keydown', e => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  if (document.activeElement !== editor) return;
+  if (e.key === 'b') { e.preventDefault(); wrapSelection('**', '**'); }
+  if (e.key === 'i') { e.preventDefault(); wrapSelection('*', '*'); }
+});
+
+const syntaxData = [
+  {
+    tab: '제목',
+    items: [
+      { code: '#', name: 'H1 제목', desc: '가장 큰 제목 (# 뒤에 공백)', insert: '# 큰 제목\n' },
+      { code: '##', name: 'H2 제목', desc: '두 번째 수준 제목', insert: '## 중간 제목\n' },
+      { code: '###', name: 'H3 제목', desc: '세 번째 수준 제목', insert: '### 작은 제목\n' },
+      { code: '####', name: 'H4 제목', desc: '네 번째 수준 제목', insert: '#### 더 작은 제목\n' },
+      { code: '#####', name: 'H5 제목', desc: '다섯 번째 수준 제목', insert: '##### H5 제목\n' },
+      { code: '######', name: 'H6 제목', desc: '가장 작은 제목', insert: '###### H6 제목\n' },
+    ]
+  },
+  {
+    tab: '서식',
+    items: [
+      { code: '**텍스트**', name: '굵게 (Bold)', desc: '텍스트를 굵게 표시합니다. Ctrl+B 단축키 지원', insert: '**굵은 텍스트**' },
+      { code: '*텍스트*', name: '기울임 (Italic)', desc: '텍스트를 기울여 표시합니다. Ctrl+I 단축키 지원', insert: '*기울임 텍스트*' },
+      { code: '***텍스트***', name: '굵은 기울임', desc: '굵게 + 기울임 동시 적용', insert: '***굵고 기울임***' },
+      { code: '~~텍스트~~', name: '취소선', desc: '텍스트에 취소선을 표시합니다', insert: '~~취소선 텍스트~~' },
+      { code: '`코드`', name: '인라인 코드', desc: '문장 안에 코드를 삽입합니다', insert: '`인라인 코드`' },
+      { code: '<u>텍스트</u>', name: '밑줄', desc: 'HTML 태그로 밑줄을 표시합니다', insert: '<u>밑줄 텍스트</u>' },
+    ]
+  },
+  {
+    tab: '목록',
+    items: [
+      { code: '- 항목', name: '순서 없는 목록', desc: '- 또는 * 또는 + 로 시작. 들여쓰기로 중첩 가능', insert: '- 첫 번째 항목\n- 두 번째 항목\n  - 중첩 항목\n' },
+      { code: '1. 항목', name: '순서 있는 목록', desc: '숫자와 점으로 시작하는 번호 목록', insert: '1. 첫 번째\n2. 두 번째\n3. 세 번째\n' },
+      { code: '- [ ] 항목', name: '체크리스트', desc: '[ ] 는 미완료, [x] 는 완료 상태', insert: '- [ ] 할 일 1\n- [x] 완료된 일\n- [ ] 할 일 3\n' },
+    ]
+  },
+  {
+    tab: '링크/이미지',
+    items: [
+      { code: '[텍스트](URL)', name: '링크', desc: '대괄호에 텍스트, 소괄호에 URL 입력', insert: '[클로드 공식 사이트](https://claude.ai)' },
+      { code: '![대체](URL)', name: '이미지', desc: '느낌표로 시작, 대체텍스트와 URL 입력', insert: '![이미지 설명](https://picsum.photos/400/200)' },
+      { code: '[텍스트][id]', name: '참조 링크', desc: '문서 하단에 링크를 별도 정의하는 방식', insert: '[참조 링크][ref]\n\n[ref]: https://example.com "설명"' },
+      { code: '<URL>', name: '자동 링크', desc: 'URL을 꺾쇠로 감싸면 자동 링크 생성', insert: '<https://claude.ai>' },
+    ]
+  },
+  {
+    tab: '코드',
+    items: [
+      { code: '`코드`', name: '인라인 코드', desc: '짧은 코드나 명령어를 문장 안에 삽입', insert: '`npm install`' },
+      { code: '```\n코드\n```', name: '코드 블록', desc: '여러 줄 코드. 언어 지정 시 하이라이팅 적용', insert: '```javascript\nconst greeting = "안녕하세요!";\nconsole.log(greeting);\n```\n' },
+      { code: '```python', name: '언어 지정 코드블록', desc: 'python, js, bash, sql 등 언어명을 지정하면 구문 강조가 됩니다', insert: '```python\ndef hello():\n    print("Hello, World!")\n```\n' },
+    ]
+  },
+  {
+    tab: '블록',
+    items: [
+      { code: '> 텍스트', name: '인용문 (Blockquote)', desc: '> 로 시작. 중첩 인용은 >> 사용', insert: '> 이것은 인용문입니다.\n> 여러 줄로 작성 가능합니다.\n>> 중첩 인용\n' },
+      { code: '---', name: '수평선 (HR)', desc: '--- 또는 *** 또는 ___ 로 구분선 생성', insert: '\n---\n' },
+      { code: '줄끝  (공백2개)', name: '줄바꿈', desc: '문장 끝에 공백 2개를 입력하면 줄이 바뀝니다', insert: '첫 번째 줄  \n두 번째 줄\n' },
+    ]
+  },
+  {
+    tab: '표',
+    items: [
+      { code: '| 열1 | 열2 |', name: '기본 표', desc: '| 로 열을 구분, 두 번째 행에 --- 으로 헤더 구분', insert: '| 이름 | 나이 | 직업 |\n|------|------|------|\n| 철수 | 25 | 개발자 |\n| 영희 | 23 | 디자이너 |\n' },
+      { code: ':---:', name: '정렬', desc: ':--- 좌측, :---: 가운데, ---: 우측 정렬', insert: '| 왼쪽 | 가운데 | 오른쪽 |\n|:-----|:------:|------:|\n| 좌측 | 중앙 | 우측 |\n' },
+    ]
+  },
+  {
+    tab: '기타',
+    items: [
+      { code: '\\*', name: '이스케이프', desc: '특수문자 앞에 \\ 를 붙이면 그대로 출력됩니다', insert: '\\*별표 그대로\\* \\`백틱 그대로\\`' },
+      { code: '<!-- 주석 -->', name: 'HTML 주석', desc: '렌더링 결과에 표시되지 않는 주석', insert: '<!-- 이 내용은 표시되지 않습니다 -->' },
+      { code: '<br>', name: '강제 줄바꿈', desc: 'HTML br 태그로 강제로 줄을 바꿉니다', insert: '줄1<br>줄2' },
+      { code: '&nbsp;', name: '공백 문자', desc: '여러 개의 공백을 삽입할 때 사용합니다', insert: '첫 번째&nbsp;&nbsp;&nbsp;세 번째' },
+    ]
+  },
+];
+
+const tabsEl = document.getElementById('panel-tabs');
+const bodyEl = document.getElementById('panel-body');
+
+syntaxData.forEach((section, i) => {
+  // Tab button
+  const btn = document.createElement('button');
+  btn.className = 'tab' + (i === 0 ? ' active' : '');
+  btn.textContent = section.tab;
+  btn.onclick = () => switchTab(i);
+  tabsEl.appendChild(btn);
+
+  const sec = document.createElement('div');
+  sec.className = 'syntax-section' + (i === 0 ? ' active' : '');
+  sec.id = 'sec-' + i;
+
+  section.items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'syntax-item';
+    el.innerHTML = `
+      <div class="syntax-code">${escapeHTML(item.code)}</div>
+      <div class="syntax-info">
+        <div class="syntax-name">${item.name}</div>
+        <div class="syntax-desc">${item.desc}</div>
+      </div>
+      <div class="insert-hint">삽입 ↑</div>
+    `;
+    el.onclick = () => {
+      insertAtCursor(item.insert);
+      showToast('삽입되었습니다');
+    };
+    sec.appendChild(el);
+  });
+
+  bodyEl.appendChild(sec);
+});
+
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i === j));
+  document.querySelectorAll('.syntax-section').forEach((s,j) => s.classList.toggle('active', i === j));
+}
+
+function escapeHTML(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function insertAtCursor(text) {
+  const s = editor.selectionStart;
+  const before = editor.value.slice(0, s);
+  const after = editor.value.slice(editor.selectionEnd);
+  editor.value = before + text + after;
+  const pos = s + text.length;
+  editor.setSelectionRange(pos, pos);
+  editor.focus();
+  render(); updateStatus();
+}
+
+function togglePanel() {
+  const panel = document.getElementById('syntax-panel');
+  const overlay = document.getElementById('overlay');
+  panel.classList.toggle('active');
+  overlay.classList.toggle('active');
+}
+
+function closePanel() {
+  document.getElementById('syntax-panel').classList.remove('active');
+  document.getElementById('overlay').classList.remove('active');
+}
+
+function copyMarkdown() {
+  navigator.clipboard.writeText(editor.value).then(() => showToast('마크다운 복사됨'));
+}
+
+function clearEditor() {
+  if (editor.value && confirm('내용을 모두 지울까요?')) {
+    editor.value = '';
+    render(); updateStatus();
+  }
+}
+
+function exportHTML() {
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마크다운 보기</title>
+<style>
+  body { max-width: 800px; margin: 40px auto; padding: 0 20px; font-family: 'Noto Sans KR', sans-serif; line-height: 1.75; color: #1a1a1a; }
+  h1,h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+  code { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.875em; }
+  pre { background: #f5f5f5; padding: 1em; border-radius: 8px; overflow-x: auto; }
+  blockquote { border-left: 4px solid #7c6cfa; margin: 0; padding: 4px 16px; color: #555; }
+  table { border-collapse: collapse; width: 100%; }
+  th,td { border: 1px solid #ddd; padding: 8px 12px; }
+  th { background: #f8f8f8; }
+  img { max-width: 100%; }
+</style>
+</head>
+<body>
+${marked.parse(editor.value || '')}
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'document.html'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('HTML 파일 저장됨');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+const divider = document.getElementById('divider');
+const editorPane = document.getElementById('editor-pane');
+const previewPane = document.getElementById('preview-pane');
+let dragging = false, startX, startW;
+
+divider.addEventListener('mousedown', e => {
+  dragging = true;
+  startX = e.clientX;
+  startW = editorPane.offsetWidth;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - startX;
+  const totalW = editorPane.parentElement.offsetWidth;
+  const newW = Math.max(200, Math.min(totalW - 200, startW + dx));
+  editorPane.style.flex = 'none';
+  editorPane.style.width = newW + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  dragging = false;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+
+editor.value = `# 마크다운 에디터에 오신 걸 환영합니다!
+
+여기에 마크다운을 입력하면 **오른쪽 화면**에 실시간으로 보여집니다.
+
+## 서식 예시
+
+**굵게**, *기울임*, ~~취소선~~, \`인라인 코드\`
+
+## 코드 블록
+
+\`\`\`javascript
+const hello = () => {
+  console.log("Hello, World!");
+};
+hello();
+\`\`\`
+
+## 목록
+
+- 첫 번째 항목
+- 두 번째 항목
+  - 중첩 항목
+
+1. 순서 있는 목록
+2. 두 번째
+3. 세 번째
+
+## 체크리스트
+
+- [x] 마크다운 에디터 만들기
+- [ ] 문법 패널 확인하기
+- [ ] 내용 작성하기
+
+## 인용문
+
+> 마크다운은 텍스트를 HTML로 변환하는 간단한 마크업 언어입니다.
+
+## 표
+
+| 기능 | 단축키 | 설명 |
+|------|--------|------|
+| 굵게 | Ctrl+B | 텍스트를 굵게 |
+| 기울임 | Ctrl+I | 텍스트를 기울임 |
+| 복사 | Ctrl+C | 선택 복사 |
+
+---
+
+오른쪽 아래 **문법 보기** 버튼을 눌러 모든 마크다운 문법을 확인하세요!
+`;
+
+render();
+updateStatus();
+</script>
+</body>
+</html>
