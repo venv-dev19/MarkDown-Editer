@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>마크다운 에디터</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js">
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -59,13 +60,7 @@
   }
 
   .logo-badge {
-    background: var(--accent);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
+    display: none;
   }
 
   .header-actions {
@@ -128,13 +123,8 @@
   }
 
   .pane-header .dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
+    display: none;
   }
-
-  .pane-header .dot.green { background: var(--green); }
 
   .divider {
     width: 1px;
@@ -304,7 +294,6 @@
 
   #syntax-btn svg { width: 16px; height: 16px; }
 
-  /* Panel overlay */
   .overlay {
     display: none;
     position: fixed;
@@ -524,7 +513,7 @@
     height: 18px;
     background: var(--border);
     margin: 0 4px;
-    flex-sh--font-m
+    flex-shrink: 0;
   }
 
   .tool-label {
@@ -600,7 +589,6 @@
       <path d="M5 7h5M5 10h8M5 13h6" stroke="#7c6cfa" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     마크다운 에디터
-    <span class="logo-badge">LIVE</span>
   </div>
   <div class="header-actions">
     <button class="btn" onclick="copyMarkdown()" title="마크다운 복사">
@@ -615,7 +603,6 @@
 <main>
   <div class="pane" id="editor-pane" style="max-width: 50%;">
     <div class="pane-header">
-      <div class="dot"></div>
       편집기
     </div>
     <div class="editor-toolbar">
@@ -655,7 +642,6 @@
 
   <div class="pane" id="preview-pane">
     <div class="pane-header">
-      <div class="dot green"></div>
       미리보기
     </div>
     <div id="preview">
@@ -790,7 +776,7 @@ const syntaxData = [
   {
     tab: '링크/이미지',
     items: [
-      { code: '[텍스트](URL)', name: '링크', desc: '대괄호에 텍스트, 소괄호에 URL 입력', insert: '[사이트](https:/4example.com)' },
+      { code: '[텍스트](URL)', name: '링크', desc: '대괄호에 텍스트, 소괄호에 URL 입력', insert: '[사이트](https://example.com)' },
       { code: '![대체](URL)', name: '이미지', desc: '느낌표로 시작, 대체텍스트와 URL 입력', insert: '![이미지 설명](https://picsum.photos/400/200)' },
       { code: '[텍스트][id]', name: '참조 링크', desc: '문서 하단에 링크를 별도 정의하는 방식', insert: '[참조 링크][ref]\n\n[ref]: https://example.com "설명"' },
       { code: '<URL>', name: '자동 링크', desc: 'URL을 꺾쇠로 감싸면 자동 링크 생성', insert: '<https://example.com>' },
@@ -834,7 +820,6 @@ const tabsEl = document.getElementById('panel-tabs');
 const bodyEl = document.getElementById('panel-body');
 
 syntaxData.forEach((section, i) => {
-  // Tab button
   const btn = document.createElement('button');
   btn.className = 'tab' + (i === 0 ? ' active' : '');
   btn.textContent = section.tab;
@@ -949,7 +934,6 @@ function showToast(msg) {
 
 const divider = document.getElementById('divider');
 const editorPane = document.getElementById('editor-pane');
-const previewPane = document.getElementById('preview-pane');
 let dragging = false, startX, startW;
 
 divider.addEventListener('mousedown', e => {
