@@ -524,7 +524,7 @@
     height: 18px;
     background: var(--border);
     margin: 0 4px;
-    flex-shrink: 0;
+    flex-sh--font-m
   }
 
   .tool-label {
@@ -790,7 +790,7 @@ const syntaxData = [
   {
     tab: '링크/이미지',
     items: [
-      { code: '[텍스트](URL)', name: '링크', desc: '대괄호에 텍스트, 소괄호에 URL 입력', insert: '[클로드 공식 사이트](https://claude.ai)' },
+      { code: '[텍스트](URL)', name: '링크', desc: '대괄호에 텍스트, 소괄호에 URL 입력', insert: '[사이트](https:/4example.com)' },
       { code: '![대체](URL)', name: '이미지', desc: '느낌표로 시작, 대체텍스트와 URL 입력', insert: '![이미지 설명](https://picsum.photos/400/200)' },
       { code: '[텍스트][id]', name: '참조 링크', desc: '문서 하단에 링크를 별도 정의하는 방식', insert: '[참조 링크][ref]\n\n[ref]: https://example.com "설명"' },
       { code: '<URL>', name: '자동 링크', desc: 'URL을 꺾쇠로 감싸면 자동 링크 생성', insert: '<https://claude.ai>' },
